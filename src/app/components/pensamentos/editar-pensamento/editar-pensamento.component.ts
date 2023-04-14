@@ -1,47 +1,63 @@
-import { Component } from '@angular/core';
-import { Pensamento } from '../pensamento';
-import { PensamentoService } from '../pensamento.service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { PensamentoService } from './../pensamento.service';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-editar-pensamento',
   templateUrl: './editar-pensamento.component.html',
   styleUrls: ['./editar-pensamento.component.css']
 })
-export class EditarPensamentoComponent {
+export class EditarPensamentoComponent implements OnInit {
 
-  constructor(private service: PensamentoService,
+  formulario!: FormGroup;
+
+  constructor(
+    private service: PensamentoService,
     private router: Router,
-    private route: ActivatedRoute) { }
+    private route: ActivatedRoute,
+    private formBuilder: FormBuilder
+  ) { }
 
-  pensamento: Pensamento = {
-    id: 3,
-    conteudo: '',
-    autoria: '',
-    modelo: 'modelo1'
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id')
+    this.service.buscarId(parseInt(id!)).subscribe((pensamento) => {
+      this.formulario = this.formBuilder.group({
+        id: [pensamento.id],
+        conteudo: [pensamento.conteudo, Validators.compose([
+          Validators.required,
+          Validators.pattern(/(.|\s)*\S(.|\s)*/)
+        ])],
+        autoria: [pensamento.autoria, Validators.compose([
+          Validators.required,
+          Validators.minLength(3)
+        ])],
+        modelo: [pensamento.modelo],
+        favorito: [pensamento.favorito]
+      });
+
+      console.log(`Conteudo ${this.formulario.get('conteudo')?.value}`);
+      console.log(`Conteudo ${this.formulario.get('modelo')?.value}`);
+      console.log(`Conteudo ${this.formulario.get('id')?.value}`);
+      console.log(`Conteudo ${this.formulario.get('autoria')?.value}`);
+
+    });
   }
 
-
   editarPensamento() {
-    this.service.editarPensamento(this.pensamento).subscribe(()=>{
-      this.router.navigate(['/listarPensamento']);
-    });
-
+    this.service.editarPensamento(this.formulario.value).subscribe(() => {
+      this.router.navigate(['/listarPensamento'])
+    })
   }
 
   cancelar() {
     this.router.navigate(['/listarPensamento'])
   }
 
-  ngOnInit(): void{
-    const id = this.route.snapshot.paramMap.get('id');
-    if(id){
-      this.service.buscarId(parseInt(id)).subscribe((pensamento)=> {
-        this.pensamento = pensamento;
-      });
+  habilitarBotao(): string {
+    if(this.formulario.valid) {
+      return "botao"
     }
+    else return "botao__desabilitado"
   }
-
-
-
 }
